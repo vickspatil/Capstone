@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results</title>
+</head>
+<body>
+    <h1>{{ message }}</h1>
+    <h2>Statistics</h2>
+    <pre id="statistics"></pre>
+
+    <h2>Visualizations</h2>
+    <div id="visualizations">
+        <!-- Visualization images will be dynamically inserted here -->
+    </div>
+
+    <h2>CSV File</h2>
+    <div id="csv-link">
+        <!-- CSV download link will be dynamically inserted here -->
+    </div>
+
+    <script>
+        // JavaScript to identify the latest folder based on timestamp
+        function getLatestFolder(basePath, type) {
+            const folders = {{ folders | tojson }}; // Folders passed from Flask backend
+            const regex = new RegExp(`${type}_\\d{8}_\\d{6}`);
+            let latestFolder = null;
+            let latestTime = 0;
+
+            folders.forEach(folder => {
+                const match = folder.match(regex);
+                if (match) {
+                    const timestamp = folder.split('_')[1] + folder.split('_')[2];
+                    const timeValue = parseInt(timestamp, 10);
+                    if (timeValue > latestTime) {
+                        latestTime = timeValue;
+                        latestFolder = folder;
+                    }
+                }
+            });
+
+            return latestFolder ? `${basePath}/${latestFolder}` : null;
+        }
+
+        // Base path (adjust as needed)
+        const basePath = "D:/Capstone/Cancer/November/web_output";
+
+        // Get the latest folders
+        const visualizationsFolder = getLatestFolder(basePath, "visualizations");
+        const statisticsFile = getLatestFolder(basePath, "statistics");
+        const csvFile = getLatestFolder(basePath, "cell_analysis");
+
+        // Display visualizations
+        if (visualizationsFolder) {
+            fetch(`${visualizationsFolder}`)
+                .then(response => response.json())
+                .then(data => {
+                    data.images.forEach(image => {
+                        const img = document.createElement("img");
+                        img.src = `${visualizationsFolder}/${image}`;
+                        img.alt = "Visualization";
+                        img.style.maxWidth = "100%";
+                        img.style.height = "auto";
+                        document.getElementById("visualizations").appendChild(img);
+                    });
+                });
+        }
+
+        // Display statistics
+        if (statisticsFile) {
+            fetch(`${statisticsFile}`)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("statistics").innerText = data;
+                });
+        }
+
+        // Display CSV link
+        if (csvFile) {
+            const link = document.createElement("a");
+            link.href = `${csvFile}`;
+            link.innerText = "Download CSV";
+            document.getElementById("csv-link").appendChild(link);
+        }
+    </script>
+</body>
+</html>
